@@ -1,8 +1,9 @@
 #[allow(unused_imports)]
 use std::io::{self, Read, Write};
+use std::process::{Command, Stdio};
 use std::{fs, os::unix::fs::PermissionsExt};
 
-struct Command {
+struct Cmd {
     name: String,
     args: Vec<String>,
 }
@@ -13,12 +14,7 @@ fn main() {
         let input = read_input();
         let cmd = parse_command_from_input(input);
 
-        if !is_builtin(&cmd.name) {
-            println!("{}: command not found", cmd.name);
-            continue;
-        }
-
-        run_cmd(cmd)
+        run_builtin(cmd)
     }
 }
 
@@ -42,7 +38,7 @@ fn read_input() -> String {
     return input;
 }
 
-fn parse_command_from_input(input: String) -> Command {
+fn parse_command_from_input(input: String) -> Cmd {
     let mut parts = input.split_whitespace();
     let cmd_name = parts.next().unwrap().to_string();
     let mut cmd_args: Vec<String> = Vec::new();
@@ -51,7 +47,7 @@ fn parse_command_from_input(input: String) -> Command {
         cmd_args.push(a.to_string())
     }
 
-    Command {
+    Cmd {
         name: cmd_name,
         args: cmd_args,
     }
@@ -95,7 +91,44 @@ fn type_cmd(cmd: &String) -> bool {
     return false;
 }
 
-fn run_cmd(cmd: Command) {
+fn run_cmd(cmd: Cmd) {
+    let path = std::env::var("PATH").unwrap();
+    let mut dirs: Vec<String> = Vec::new();
+
+    if path.contains(":") {
+        let parts = path.split_terminator(":");
+        for (_, d) in parts.enumerate() {
+            dirs.push(d.to_string())
+        }
+    }
+
+    for d in dirs {
+        let full_path = d + "/" + &cmd.name;
+        let res = fs::metadata(&full_path);
+
+        match res {
+            Ok(r) => {
+                if r.is_file() {
+                    let mode = r.permissions().mode();
+                    if (mode & 0o111) != 0 {
+                        Command::new(&cmd.name)
+                            .stdout(Stdio::inherit())
+                            .args(&cmd.args)
+                            .output()
+                            .unwrap();
+                    } else {
+                        return;
+                    }
+                } else {
+                    continue;
+                }
+            }
+            _ => continue,
+        };
+    }
+}
+
+fn run_builtin(cmd: Cmd) {
     match cmd.name.as_str() {
         "exit" => std::process::exit(0),
         "echo" => {
@@ -114,6 +147,6 @@ fn run_cmd(cmd: Command) {
                 println!("{}: not found", &cmd.args[0])
             }
         }
-        _ => std::process::exit(1),
+        _ => run_cmd(cmd),
     }
 }
