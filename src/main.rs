@@ -57,7 +57,7 @@ fn parse_command_from_input(input: String) -> Command {
 }
 
 fn is_valid_command(cmd: &String) -> bool {
-    let cmds = ["echo", "exit"];
+    let cmds = ["echo", "exit", "type"];
 
     return cmds.iter().any(|c| c == cmd);
 }
@@ -67,6 +67,13 @@ fn run_cmd(cmd: Command) {
         "exit" => std::process::exit(0),
         "echo" => {
             println!("{}", cmd.args.join(" "))
+        }
+        "type" => {
+            if cmd.args.len() > 0 && is_valid_command(&cmd.args[0].to_string()) {
+                println!("{} is a shell builtin", &cmd.args[0])
+            } else {
+                println!("{}: not found", &cmd.args[0])
+            }
         }
         _ => std::process::exit(1),
     }
