@@ -83,6 +83,7 @@ fn type_cmd(cmd: &String) {
                     let mode = r.permissions().mode();
                     if mode & 0o111 != 0 {
                         println!("{} is {}", cmd, &full_path);
+                        return;
                     }
                 } else {
                     continue;
