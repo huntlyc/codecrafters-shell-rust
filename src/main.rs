@@ -62,7 +62,7 @@ fn is_builtin(cmd: &String) -> bool {
     builtins.iter().any(|e| e == cmd)
 }
 
-fn type_cmd(cmd: &String) {
+fn type_cmd(cmd: &String) -> bool {
     let path = std::env::var("PATH").unwrap();
     let mut dirs: Vec<String> = Vec::new();
 
@@ -83,7 +83,7 @@ fn type_cmd(cmd: &String) {
                     let mode = r.permissions().mode();
                     if mode & 0o111 != 0 {
                         println!("{} is {}", cmd, &full_path);
-                        return;
+                        return true;
                     }
                 } else {
                     continue;
@@ -92,6 +92,7 @@ fn type_cmd(cmd: &String) {
             _ => continue,
         };
     }
+    return false;
 }
 
 fn run_cmd(cmd: Command) {
@@ -105,7 +106,9 @@ fn run_cmd(cmd: Command) {
                 if is_builtin(&cmd.args[0].to_string()) {
                     println!("{} is a shell builtin", &cmd.args[0])
                 } else {
-                    type_cmd(&cmd.args[0])
+                    if !type_cmd(&cmd.args[0]) {
+                        println!("{}: not found", &cmd.args[0])
+                    }
                 }
             } else {
                 println!("{}: not found", &cmd.args[0])
