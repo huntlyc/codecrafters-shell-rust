@@ -147,6 +147,12 @@ fn run_builtin(cmd: Cmd) {
                 println!("{}: not found", &cmd.args[0])
             }
         }
-        _ => run_cmd(cmd),
+        _ => {
+            if type_cmd(&cmd.name) {
+                run_cmd(cmd);
+            } else {
+                println!("{}: not found", &cmd.name)
+            }
+        }
     }
 }
