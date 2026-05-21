@@ -91,6 +91,38 @@ fn type_cmd(cmd: &String) -> bool {
     return false;
 }
 
+fn is_valid_executable(cmd: &String) -> bool {
+    let path = std::env::var("PATH").unwrap();
+    let mut dirs: Vec<String> = Vec::new();
+
+    if path.contains(":") {
+        let parts = path.split_terminator(":");
+        for (_, d) in parts.enumerate() {
+            dirs.push(d.to_string())
+        }
+    }
+
+    for d in dirs {
+        let full_path = d + "/" + cmd;
+        let res = fs::metadata(&full_path);
+
+        match res {
+            Ok(r) => {
+                if r.is_file() {
+                    let mode = r.permissions().mode();
+                    if mode & 0o111 != 0 {
+                        return true;
+                    }
+                } else {
+                    continue;
+                }
+            }
+            _ => continue,
+        };
+    }
+    return false;
+}
+
 fn run_cmd(cmd: Cmd) {
     let path = std::env::var("PATH").unwrap();
     let mut dirs: Vec<String> = Vec::new();
@@ -148,7 +180,7 @@ fn run_builtin(cmd: Cmd) {
             }
         }
         _ => {
-            if type_cmd(&cmd.name) {
+            if is_valid_executable(&cmd.name) {
                 run_cmd(cmd);
             } else {
                 println!("{}: not found", &cmd.name)
