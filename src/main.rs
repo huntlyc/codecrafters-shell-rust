@@ -1,6 +1,6 @@
-use std::fs;
 #[allow(unused_imports)]
 use std::io::{self, Read, Write};
+use std::{fs, os::unix::fs::PermissionsExt};
 
 struct Command {
     name: String,
@@ -78,7 +78,16 @@ fn type_cmd(cmd: &String) {
         let res = fs::metadata(&full_path);
 
         match res {
-            Ok(_) => println!("{} is {}", cmd, &full_path),
+            Ok(r) => {
+                if r.is_file() {
+                    let mode = r.permissions().mode();
+                    if mode & 0o111 != 0 {
+                        println!("{} is {}", cmd, &full_path);
+                    }
+                } else {
+                    continue;
+                }
+            }
             _ => continue,
         };
     }
