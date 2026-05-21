@@ -4,8 +4,26 @@ use std::io::{self, Read, Write};
 fn main() {
     loop {
         print_prompt();
-        read_input();
+        let cmd = read_input();
+
+        if !is_valid_command(&cmd) {
+            println!("{}: command not found", cmd);
+        }
+
+        run_cmd(cmd)
     }
+}
+
+fn run_cmd(cmd: String) {
+    if cmd.to_lowercase() == "exit" {
+        std::process::exit(0)
+    }
+}
+
+fn is_valid_command(cmd: &String) -> bool {
+    let cmds = ["exit"];
+
+    return cmds.iter().any(|c| c == cmd);
 }
 
 fn print_prompt() {
@@ -24,8 +42,6 @@ fn read_input() -> String {
         print_prompt();
         input = read_input()
     }
-
-    println!("{}: command not found", input);
 
     return input;
 }
