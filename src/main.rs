@@ -14,18 +14,6 @@ fn main() {
     }
 }
 
-fn run_cmd(cmd: String) {
-    if cmd.to_lowercase() == "exit" {
-        std::process::exit(0)
-    }
-}
-
-fn is_valid_command(cmd: &String) -> bool {
-    let cmds = ["exit"];
-
-    return cmds.iter().any(|c| c == cmd);
-}
-
 fn print_prompt() {
     print!("$ ");
     io::stdout().flush().unwrap();
@@ -44,4 +32,16 @@ fn read_input() -> String {
     }
 
     return input;
+}
+
+fn is_valid_command(cmd: &String) -> bool {
+    let cmds = ["exit"];
+
+    return cmds.iter().any(|c| c == cmd);
+}
+
+fn run_cmd(cmd: String) {
+    if cmd.to_lowercase() == "exit" {
+        std::process::exit(0)
+    }
 }
