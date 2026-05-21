@@ -2,8 +2,10 @@
 use std::io::{self, Read, Write};
 
 fn main() {
-    print_prompt();
-    read_input();
+    loop {
+        print_prompt();
+        read_input();
+    }
 }
 
 fn print_prompt() {
