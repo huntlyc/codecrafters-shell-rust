@@ -1,3 +1,4 @@
+use std::fs;
 #[allow(unused_imports)]
 use std::io::{self, Read, Write};
 
@@ -12,7 +13,7 @@ fn main() {
         let input = read_input();
         let cmd = parse_command_from_input(input);
 
-        if !is_valid_command(&cmd.name) {
+        if !is_builtin(&cmd.name) {
             println!("{}: command not found", cmd.name);
             continue;
         }
@@ -56,10 +57,31 @@ fn parse_command_from_input(input: String) -> Command {
     }
 }
 
-fn is_valid_command(cmd: &String) -> bool {
-    let cmds = ["echo", "exit", "type"];
+fn is_builtin(cmd: &String) -> bool {
+    let builtins = ["echo", "exit", "type"];
+    builtins.iter().any(|e| e == cmd)
+}
 
-    return cmds.iter().any(|c| c == cmd);
+fn type_cmd(cmd: &String) {
+    let path = std::env::var("PATH").unwrap();
+    let mut dirs: Vec<String> = Vec::new();
+
+    if path.contains(":") {
+        let parts = path.split_terminator(":");
+        for (_, d) in parts.enumerate() {
+            dirs.push(d.to_string())
+        }
+    }
+
+    for d in dirs {
+        let full_path = d + "/" + cmd;
+        let res = fs::metadata(&full_path);
+
+        match res {
+            Ok(_) => println!("{} is {}", cmd, &full_path),
+            _ => continue,
+        };
+    }
 }
 
 fn run_cmd(cmd: Command) {
@@ -69,8 +91,12 @@ fn run_cmd(cmd: Command) {
             println!("{}", cmd.args.join(" "))
         }
         "type" => {
-            if cmd.args.len() > 0 && is_valid_command(&cmd.args[0].to_string()) {
-                println!("{} is a shell builtin", &cmd.args[0])
+            if cmd.args.len() > 0 {
+                if is_builtin(&cmd.args[0].to_string()) {
+                    println!("{} is a shell builtin", &cmd.args[0])
+                } else {
+                    type_cmd(&cmd.args[0])
+                }
             } else {
                 println!("{}: not found", &cmd.args[0])
             }
