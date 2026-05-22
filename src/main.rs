@@ -1,156 +1,157 @@
-#[allow(unused_imports)]
-use std::io::{self, Read, Write};
-use std::process::{Command, Stdio};
-use std::{fs, os::unix::fs::PermissionsExt};
-
-struct Cmd {
-    name: String,
-    args: Vec<String>,
-}
-
 fn main() {
     loop {
-        print_prompt();
-        let input = read_input();
-        let cmd = parse_command_from_input(input);
+        shell::print_prompt();
+        let input = shell::read_input();
+        let cmd = shell::parse_command_from_input(input);
 
-        run_usr_cmd(cmd)
+        shell::run_usr_cmd(cmd)
     }
 }
 
-/// The base user prompt
-fn print_prompt() {
-    print!("$ ");
-    io::stdout().flush().unwrap();
-}
-
-/// Reads the input from the user.
-fn read_input() -> String {
-    let mut input = String::new();
-    io::stdin()
-        .read_line(&mut input)
-        .expect("should have provided input");
-
-    input = input.trim().to_string();
-    if input == "" {
-        print_prompt();
-        input = read_input()
+#[allow(unused_imports)]
+pub mod shell {
+    use std::io::{self, Read, Write};
+    use std::process::{Command, Stdio};
+    use std::{fs, os::unix::fs::PermissionsExt};
+    pub struct Cmd {
+        name: String,
+        args: Vec<String>,
     }
 
-    return input;
-}
-
-/// Given: echo hello world
-/// Returns: Cmd { name: "echo", args: ["hello", "world"]
-fn parse_command_from_input(input: String) -> Cmd {
-    let mut parts = input.split_whitespace();
-    let mut cmd_args: Vec<String> = Vec::new();
-
-    let cmd_name = parts.next().unwrap().to_string();
-
-    for (_, a) in parts.enumerate() {
-        cmd_args.push(a.to_string())
+    /// The base user prompt
+    pub fn print_prompt() {
+        print!("$ ");
+        io::stdout().flush().unwrap();
     }
 
-    Cmd {
-        name: cmd_name,
-        args: cmd_args,
+    /// Reads the input from the user.
+    pub fn read_input() -> String {
+        let mut input = String::new();
+        io::stdin()
+            .read_line(&mut input)
+            .expect("should have provided input");
+
+        input = input.trim().to_string();
+        if input == "" {
+            print_prompt();
+            input = read_input()
+        }
+
+        return input;
     }
-}
 
-/// Matches cmd name against shell builtin commands
-fn is_builtin(cmd_namae: &String) -> bool {
-    let builtins = ["echo", "exit", "pwd", "type"];
-    builtins.iter().any(|e| e == cmd_namae)
-}
+    /// Given: echo hello world
+    /// Returns: Cmd { name: "echo", args: ["hello", "world"]
+    pub fn parse_command_from_input(input: String) -> Cmd {
+        let mut parts = input.split_whitespace();
+        let mut cmd_args: Vec<String> = Vec::new();
 
-/// Given a command name, search the PATH for the command.
-/// Returns the full path, e.g. /usr/bin/ls
-fn get_exec_full_path(cmd_name: &String) -> String {
-    let path = std::env::var("PATH").unwrap();
-    let mut dirs: Vec<String> = Vec::new();
+        let cmd_name = parts.next().unwrap().to_string();
 
-    if path.contains(":") {
-        let parts = path.split_terminator(":");
-        for (_, d) in parts.enumerate() {
-            dirs.push(d.to_string())
+        for (_, a) in parts.enumerate() {
+            cmd_args.push(a.to_string())
+        }
+
+        Cmd {
+            name: cmd_name,
+            args: cmd_args,
         }
     }
 
-    for d in dirs {
-        let full_path = d + "/" + cmd_name;
-        let res = fs::metadata(&full_path);
+    /// Matches cmd name against shell builtin commands
+    fn is_builtin(cmd_namae: &String) -> bool {
+        let builtins = ["echo", "exit", "pwd", "type"];
+        builtins.iter().any(|e| e == cmd_namae)
+    }
 
-        match res {
-            Ok(r) => {
-                if r.is_file() {
-                    let mode = r.permissions().mode();
-                    if mode & 0o111 != 0 {
-                        return full_path;
+    /// Given a command name, search the PATH for the command.
+    /// Returns the full path, e.g. /usr/bin/ls
+    fn get_exec_full_path(cmd_name: &String) -> String {
+        let path = std::env::var("PATH").unwrap();
+        let mut dirs: Vec<String> = Vec::new();
+
+        if path.contains(":") {
+            let parts = path.split_terminator(":");
+            for (_, d) in parts.enumerate() {
+                dirs.push(d.to_string())
+            }
+        }
+
+        for d in dirs {
+            let full_path = d + "/" + cmd_name;
+            let res = fs::metadata(&full_path);
+
+            match res {
+                Ok(r) => {
+                    if r.is_file() {
+                        let mode = r.permissions().mode();
+                        if mode & 0o111 != 0 {
+                            return full_path;
+                        }
                     }
                 }
-            }
-            _ => continue,
-        };
-    }
-    return "".to_string();
-}
-
-/// Runs a cmd
-fn run(cmd: Cmd) {
-    let cmd_with_path = get_exec_full_path(&cmd.name);
-
-    if cmd_with_path == "" {
-        println!("{}: not found", &cmd.name);
-        return;
-    }
-    Command::new(&cmd.name)
-        .stdout(Stdio::inherit())
-        .args(&cmd.args)
-        .output()
-        .unwrap();
-}
-
-/// Tries to run the command that the user typed.
-fn run_usr_cmd(cmd: Cmd) {
-    match cmd.name.as_str() {
-        "exit" => std::process::exit(0),
-        "echo" => {
-            println!("{}", cmd.args.join(" "))
+                _ => continue,
+            };
         }
-        "type" => run_type(cmd),
-        "pwd" => run_pwd(),
-        _ => run(cmd),
-    }
-}
-
-// Run the 'type' command.
-fn run_type(cmd: Cmd) {
-    if cmd.args.len() == 0 {
-        cmd_not_found(cmd.name);
-        return;
+        return "".to_string();
     }
 
-    if is_builtin(&cmd.args[0].to_string()) {
-        println!("{} is a shell builtin", &cmd.args[0]);
-        return;
+    /// Runs a cmd
+    fn run(cmd: Cmd) {
+        let cmd_with_path = get_exec_full_path(&cmd.name);
+
+        if cmd_with_path == "" {
+            println!("{}: not found", &cmd.name);
+            return;
+        }
+        Command::new(&cmd.name)
+            .stdout(Stdio::inherit())
+            .args(&cmd.args)
+            .output()
+            .unwrap();
     }
 
-    let exec_path = get_exec_full_path(&cmd.args[0]);
-    if exec_path != "" {
-        println!("{} is {}", &cmd.args[0], exec_path);
-        return;
+    /// Tries to run the command that the user typed.
+    pub fn run_usr_cmd(cmd: Cmd) {
+        match cmd.name.as_str() {
+            "exit" => std::process::exit(0),
+            "echo" => {
+                println!("{}", cmd.args.join(" "))
+            }
+            "type" => run_type(cmd),
+            "pwd" => run_pwd(),
+            _ => run(cmd),
+        }
     }
 
-    cmd_not_found(cmd.args[0].to_string());
-}
+    // Run the 'type' command.
+    fn run_type(cmd: Cmd) {
+        if cmd.args.len() == 0 {
+            cmd_not_found(cmd.name);
+            return;
+        }
 
-fn run_pwd() {
-    let path = std::env::current_dir().unwrap();
-    println!("{}", path.display());
-}
+        if is_builtin(&cmd.args[0].to_string()) {
+            println!("{} is a shell builtin", &cmd.args[0]);
+            return;
+        }
 
-/// Prints out not found message.
-fn cmd_not_found(cmd_name: String) {
-    println!("{}: not found", cmd_name);
+        let exec_path = get_exec_full_path(&cmd.args[0]);
+        if exec_path != "" {
+            println!("{} is {}", &cmd.args[0], exec_path);
+            return;
+        }
+
+        cmd_not_found(cmd.args[0].to_string());
+    }
+
+    fn run_pwd() {
+        let path = std::env::current_dir().unwrap();
+        println!("{}", path.display());
+    }
+
+    /// Prints out not found message.
+    fn cmd_not_found(cmd_name: String) {
+        println!("{}: not found", cmd_name);
+    }
 }
