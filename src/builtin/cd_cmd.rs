@@ -1,7 +1,7 @@
 use crate::shell;
-use std::fs;
+use std::{fs, path::PathBuf};
 
-fn is_a_dir(path: &String) -> bool {
+fn is_a_dir(path: &PathBuf) -> bool {
     let res = fs::metadata(path);
 
     match res {
@@ -17,10 +17,35 @@ pub fn run(shell: &mut shell::Shell, cmd: shell::Cmd) {
         return;
     }
 
-    let new_path = cmd.args[0].to_string();
-    if is_a_dir(&new_path) {
+    let new_path = PathBuf::from(cmd.args[0].to_string());
+
+    // straight set
+    if new_path.is_absolute() && is_a_dir(&new_path) {
         shell.set_cwd(new_path);
         return;
     }
-    println!("cd: {}: No such file or directory", new_path)
+
+    if new_path.is_relative() {
+        let mut cwd = PathBuf::from(&shell.cwd);
+        for part in new_path.iter() {
+            let dir = String::from(part.to_str().unwrap());
+
+            match dir.as_str() {
+                ".." => {
+                    cwd.pop();
+                }
+                "." => continue,
+                _ => cwd.push(part),
+            }
+        }
+
+        shell.set_cwd(cwd);
+
+        return;
+    }
+
+    println!(
+        "cd: {}: No such file or directory",
+        String::from(new_path.to_str().unwrap())
+    )
 }

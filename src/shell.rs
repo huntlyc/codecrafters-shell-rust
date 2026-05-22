@@ -1,7 +1,7 @@
 use crate::builtin;
 use std::io::{self, Read, Write};
 use std::process::{Command, Stdio};
-use std::{fs, os::unix::fs::PermissionsExt};
+use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
 
 /// Represents a system command: "name", ["some", "args"]
 pub struct Cmd {
@@ -10,12 +10,14 @@ pub struct Cmd {
 }
 
 pub struct Shell {
-    pub cwd: String,
+    pub cwd: PathBuf,
 }
 
 impl Shell {
     pub fn new(cwd: String) -> Self {
-        Shell { cwd: cwd }
+        Shell {
+            cwd: PathBuf::from(cwd),
+        }
     }
 
     pub fn init(&mut self) {
@@ -42,7 +44,7 @@ impl Shell {
         }
     }
 
-    pub fn set_cwd(&mut self, cwd: String) {
+    pub fn set_cwd(&mut self, cwd: PathBuf) {
         self.cwd = cwd;
     }
 }
