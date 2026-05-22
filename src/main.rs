@@ -121,8 +121,8 @@ pub mod shell {
             "echo" => {
                 println!("{}", cmd.args.join(" "))
             }
-            "type" => builtin::run_type(cmd),
-            "pwd" => builtin::run_pwd(),
+            "type" => builtin::type_cmd::run(cmd),
+            "pwd" => builtin::pwd_cmd::run(),
             _ => run(cmd),
         }
     }
@@ -134,31 +134,34 @@ pub mod shell {
 }
 
 pub mod builtin {
-    use crate::shell::{Cmd, cmd_not_found, get_exec_full_path, is_builtin};
+    pub mod type_cmd {
+        use crate::shell::{Cmd, cmd_not_found, get_exec_full_path, is_builtin};
+        // Run the 'type' command.
+        pub fn run(cmd: Cmd) {
+            if cmd.args.len() == 0 {
+                cmd_not_found(cmd.name);
+                return;
+            }
 
-    // Run the 'type' command.
-    pub fn run_type(cmd: Cmd) {
-        if cmd.args.len() == 0 {
-            cmd_not_found(cmd.name);
-            return;
+            if is_builtin(&cmd.args[0].to_string()) {
+                println!("{} is a shell builtin", &cmd.args[0]);
+                return;
+            }
+
+            let exec_path = get_exec_full_path(&cmd.args[0]);
+            if exec_path != "" {
+                println!("{} is {}", &cmd.args[0], exec_path);
+                return;
+            }
+
+            cmd_not_found(cmd.args[0].to_string());
         }
-
-        if is_builtin(&cmd.args[0].to_string()) {
-            println!("{} is a shell builtin", &cmd.args[0]);
-            return;
-        }
-
-        let exec_path = get_exec_full_path(&cmd.args[0]);
-        if exec_path != "" {
-            println!("{} is {}", &cmd.args[0], exec_path);
-            return;
-        }
-
-        cmd_not_found(cmd.args[0].to_string());
     }
 
-    pub fn run_pwd() {
-        let path = std::env::current_dir().unwrap();
-        println!("{}", path.display());
+    pub mod pwd_cmd {
+        pub fn run() {
+            let path = std::env::current_dir().unwrap();
+            println!("{}", path.display());
+        }
     }
 }
