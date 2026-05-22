@@ -1,12 +1,10 @@
 pub mod builtin;
 pub mod shell;
+use shell::Shell;
 
 fn main() {
-    loop {
-        shell::print_prompt();
-        let input = shell::read_input();
-        let cmd = shell::parse_command_from_input(input);
-
-        shell::run_usr_cmd(cmd)
-    }
+    let cwd_path_buf = std::env::current_dir().unwrap();
+    let cwd = cwd_path_buf.to_str().unwrap().to_string();
+    let mut shell = Shell::new(cwd);
+    shell.init()
 }

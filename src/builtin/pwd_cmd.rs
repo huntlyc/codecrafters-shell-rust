@@ -1,5 +1,6 @@
+use crate::shell;
+
 /// runs the pwd command
-pub fn run() {
-    let path = std::env::current_dir().unwrap();
-    println!("{}", path.display());
+pub fn run(shell: &mut shell::Shell) {
+    println!("{}", shell.cwd);
 }

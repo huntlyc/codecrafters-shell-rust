@@ -9,6 +9,44 @@ pub struct Cmd {
     pub args: Vec<String>,
 }
 
+pub struct Shell {
+    pub cwd: String,
+}
+
+impl Shell {
+    pub fn new(cwd: String) -> Self {
+        Shell { cwd: cwd }
+    }
+
+    pub fn init(&mut self) {
+        loop {
+            print_prompt();
+            let input = read_input();
+            let cmd = parse_command_from_input(input);
+
+            self.run_usr_cmd(cmd)
+        }
+    }
+
+    /// Tries to run the command that the user typed.
+    pub fn run_usr_cmd(&mut self, cmd: Cmd) {
+        match cmd.name.as_str() {
+            "exit" => std::process::exit(0),
+            "echo" => {
+                println!("{}", cmd.args.join(" "))
+            }
+            "type" => builtin::type_cmd::run(cmd),
+            "pwd" => builtin::pwd_cmd::run(self),
+            "cd" => builtin::cd_cmd::run(self, cmd),
+            _ => run(cmd),
+        }
+    }
+
+    pub fn set_cwd(&mut self, cwd: String) {
+        self.cwd = cwd;
+    }
+}
+
 /// The base user prompt
 pub fn print_prompt() {
     print!("$ ");
@@ -49,10 +87,19 @@ pub fn parse_command_from_input(input: String) -> Cmd {
     }
 }
 
-/// Matches cmd name against shell builtin commands
-pub fn is_builtin(cmd_namae: &String) -> bool {
-    let builtins = ["echo", "exit", "pwd", "type"];
-    builtins.iter().any(|e| e == cmd_namae)
+/// Runs a cmd
+fn run(cmd: Cmd) {
+    let cmd_with_path = get_exec_full_path(&cmd.name);
+
+    if cmd_with_path == "" {
+        println!("{}: not found", &cmd.name);
+        return;
+    }
+    Command::new(&cmd.name)
+        .stdout(Stdio::inherit())
+        .args(&cmd.args)
+        .output()
+        .unwrap();
 }
 
 /// Given a command name, search the PATH for the command.
@@ -87,32 +134,10 @@ pub fn get_exec_full_path(cmd_name: &String) -> String {
     return "".to_string();
 }
 
-/// Runs a cmd
-fn run(cmd: Cmd) {
-    let cmd_with_path = get_exec_full_path(&cmd.name);
-
-    if cmd_with_path == "" {
-        println!("{}: not found", &cmd.name);
-        return;
-    }
-    Command::new(&cmd.name)
-        .stdout(Stdio::inherit())
-        .args(&cmd.args)
-        .output()
-        .unwrap();
-}
-
-/// Tries to run the command that the user typed.
-pub fn run_usr_cmd(cmd: Cmd) {
-    match cmd.name.as_str() {
-        "exit" => std::process::exit(0),
-        "echo" => {
-            println!("{}", cmd.args.join(" "))
-        }
-        "type" => builtin::type_cmd::run(cmd),
-        "pwd" => builtin::pwd_cmd::run(),
-        _ => run(cmd),
-    }
+/// Matches cmd name against shell builtin commands
+pub fn is_builtin(cmd_namae: &String) -> bool {
+    let builtins = ["echo", "exit", "pwd", "type", "cd"];
+    builtins.iter().any(|e| e == cmd_namae)
 }
 
 /// Prints out not found message.
