@@ -17,7 +17,14 @@ pub fn run(shell: &mut shell::Shell, cmd: shell::Cmd) {
         return;
     }
 
-    let new_path = PathBuf::from(cmd.args[0].to_string());
+    let arg = cmd.args[0].to_string();
+    if arg == "~" {
+        let path = std::env::var("HOME").unwrap();
+        shell.set_cwd(PathBuf::from(path));
+        return;
+    }
+
+    let new_path = PathBuf::from(arg);
 
     // straight set
     if new_path.is_absolute() && is_a_dir(&new_path) {

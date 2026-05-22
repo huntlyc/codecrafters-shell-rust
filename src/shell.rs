@@ -1,5 +1,5 @@
 use crate::builtin;
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::process::{Command, Stdio};
 use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
 
