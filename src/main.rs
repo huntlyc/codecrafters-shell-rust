@@ -10,12 +10,15 @@ fn main() {
 
 #[allow(unused_imports)]
 pub mod shell {
+    use crate::builtin;
     use std::io::{self, Read, Write};
     use std::process::{Command, Stdio};
     use std::{fs, os::unix::fs::PermissionsExt};
+
+    /// Represents a system command: "name", ["some", "args"]
     pub struct Cmd {
-        name: String,
-        args: Vec<String>,
+        pub name: String,
+        pub args: Vec<String>,
     }
 
     /// The base user prompt
@@ -59,14 +62,14 @@ pub mod shell {
     }
 
     /// Matches cmd name against shell builtin commands
-    fn is_builtin(cmd_namae: &String) -> bool {
+    pub fn is_builtin(cmd_namae: &String) -> bool {
         let builtins = ["echo", "exit", "pwd", "type"];
         builtins.iter().any(|e| e == cmd_namae)
     }
 
     /// Given a command name, search the PATH for the command.
     /// Returns the full path, e.g. /usr/bin/ls
-    fn get_exec_full_path(cmd_name: &String) -> String {
+    pub fn get_exec_full_path(cmd_name: &String) -> String {
         let path = std::env::var("PATH").unwrap();
         let mut dirs: Vec<String> = Vec::new();
 
@@ -118,14 +121,23 @@ pub mod shell {
             "echo" => {
                 println!("{}", cmd.args.join(" "))
             }
-            "type" => run_type(cmd),
-            "pwd" => run_pwd(),
+            "type" => builtin::run_type(cmd),
+            "pwd" => builtin::run_pwd(),
             _ => run(cmd),
         }
     }
 
+    /// Prints out not found message.
+    pub fn cmd_not_found(cmd_name: String) {
+        println!("{}: not found", cmd_name);
+    }
+}
+
+pub mod builtin {
+    use crate::shell::{Cmd, cmd_not_found, get_exec_full_path, is_builtin};
+
     // Run the 'type' command.
-    fn run_type(cmd: Cmd) {
+    pub fn run_type(cmd: Cmd) {
         if cmd.args.len() == 0 {
             cmd_not_found(cmd.name);
             return;
@@ -145,13 +157,8 @@ pub mod shell {
         cmd_not_found(cmd.args[0].to_string());
     }
 
-    fn run_pwd() {
+    pub fn run_pwd() {
         let path = std::env::current_dir().unwrap();
         println!("{}", path.display());
-    }
-
-    /// Prints out not found message.
-    fn cmd_not_found(cmd_name: String) {
-        println!("{}: not found", cmd_name);
     }
 }
