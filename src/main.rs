@@ -60,7 +60,7 @@ fn parse_command_from_input(input: String) -> Cmd {
 
 /// Matches cmd name against shell builtin commands
 fn is_builtin(cmd_namae: &String) -> bool {
-    let builtins = ["echo", "exit", "type"];
+    let builtins = ["echo", "exit", "pwd", "type"];
     builtins.iter().any(|e| e == cmd_namae)
 }
 
@@ -119,6 +119,7 @@ fn run_usr_cmd(cmd: Cmd) {
             println!("{}", cmd.args.join(" "))
         }
         "type" => run_type(cmd),
+        "pwd" => run_pwd(),
         _ => run(cmd),
     }
 }
@@ -142,6 +143,11 @@ fn run_type(cmd: Cmd) {
     }
 
     cmd_not_found(cmd.args[0].to_string());
+}
+
+fn run_pwd() {
+    let path = std::env::current_dir().unwrap();
+    println!("{}", path.display());
 }
 
 /// Prints out not found message.
