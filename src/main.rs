@@ -138,7 +138,7 @@ fn run_type(cmd: Cmd) {
 
     let exec_path = get_exec_full_path(&cmd.args[0]);
     if exec_path != "" {
-        println!("{} is {}", cmd.name, exec_path);
+        println!("{} is {}", &cmd.args[0], exec_path);
         return;
     }
 
