@@ -65,6 +65,8 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
                 if c == '\"' {
                     cur_state = State::CmdOrArg;
                     //println!("STATE CHANGE: {:#?}", cur_state);
+                } else if c == '\\' {
+                    cur_state = State::EscapeChar;
                 } else {
                     buf.push(c);
                     //println!("{} - {:#?}", c, cur_state);
