@@ -25,23 +25,29 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
             State::CmdOrArg => {
                 if c == '\'' {
                     cur_state = State::InSingleQuote;
+                    //println!("STATE CHANGE: {:#?}", cur_state);
                 } else if c == ' ' {
                     if cmd.name.len() == 0 {
                         cmd.name = buf.to_string();
-                    } else {
+                        //println!("Set CMD: {:#?}", cmd.name);
+                    } else if buf.len() > 0 {
                         cmd.args.push(buf.to_string());
+                        //println!("Set ARG: {:#?}", cmd.name);
                     }
                     buf = String::new();
                 } else {
                     // Regular char
                     buf.push(c);
+                    //println!("{} - {:#?}", c, cur_state);
                 }
             }
             State::InSingleQuote => {
                 if c == '\'' {
                     cur_state = State::CmdOrArg;
+                    //println!("STATE CHANGE: {:#?}", cur_state);
                 } else {
                     buf.push(c);
+                    //println!("{} - {:#?}", c, cur_state);
                 }
             }
         };
@@ -50,6 +56,8 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
     if buf.len() > 0 {
         cmd.args.push(buf.to_string());
     }
+
+    //println!("{:#?}: {:#?}", cmd.name, cmd.args);
 
     return Ok(cmd);
 }
