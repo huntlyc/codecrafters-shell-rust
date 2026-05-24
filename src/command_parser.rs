@@ -6,6 +6,7 @@ use crate::shell::Cmd;
 enum State {
     CmdOrArg,
     InSingleQuote,
+    InDoubleQuote,
 }
 
 pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
@@ -26,6 +27,9 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
                 if c == '\'' {
                     cur_state = State::InSingleQuote;
                     //println!("STATE CHANGE: {:#?}", cur_state);
+                } else if c == '\"' {
+                    cur_state = State::InDoubleQuote;
+                    //println!("STATE CHANGE: {:#?}", cur_state);
                 } else if c == ' ' {
                     if cmd.name.len() == 0 {
                         cmd.name = buf.to_string();
@@ -43,6 +47,15 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
             }
             State::InSingleQuote => {
                 if c == '\'' {
+                    cur_state = State::CmdOrArg;
+                    //println!("STATE CHANGE: {:#?}", cur_state);
+                } else {
+                    buf.push(c);
+                    //println!("{} - {:#?}", c, cur_state);
+                }
+            }
+            State::InDoubleQuote => {
+                if c == '\"' {
                     cur_state = State::CmdOrArg;
                     //println!("STATE CHANGE: {:#?}", cur_state);
                 } else {
