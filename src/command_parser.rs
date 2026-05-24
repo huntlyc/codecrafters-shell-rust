@@ -54,7 +54,11 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
     }
 
     if buf.len() > 0 {
-        cmd.args.push(buf.to_string());
+        if cmd.name.len() == 0 {
+            cmd.name = buf.to_string();
+        } else {
+            cmd.args.push(buf.to_string());
+        }
     }
 
     //println!("{:#?}: {:#?}", cmd.name, cmd.args);
