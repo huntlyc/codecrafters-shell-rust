@@ -1,4 +1,5 @@
 pub mod builtin;
+pub mod command_parser;
 pub mod shell;
 use shell::Shell;
 

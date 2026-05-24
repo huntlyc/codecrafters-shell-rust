@@ -1,4 +1,5 @@
 use crate::builtin;
+use crate::command_parser;
 use std::io::{self, Write};
 use std::process::{Command, Stdio};
 use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
@@ -24,7 +25,7 @@ impl Shell {
         loop {
             print_prompt();
             let input = read_input();
-            let cmd = parse_command_from_input(input);
+            let cmd = command_parser::parse_command_from_input(input).unwrap();
 
             self.run_usr_cmd(cmd)
         }
@@ -74,20 +75,47 @@ pub fn read_input() -> String {
 /// Given: echo hello world
 /// Returns: Cmd { name: "echo", args: ["hello", "world"]
 pub fn parse_command_from_input(input: String) -> Cmd {
+    let cmd_name = String::new();
+    let cmd_args: Vec<String> = Vec::new();
+
+    /*
+     * We need to parse out a command and its arguments
+     * The simplest stucture is:  cmd arg1 arg2 where whitespace delimits everything
+     * Things get complicated with quotes...
+     * cmd 'arg1' 'a string' -> cmd, arg1, a string
+     * cmd 'hello''world' -> cmd, helloworld
+     * cmd 'hello''world' 'something   else' -> cmd, helloworld, something   else
+     **/
+
     let mut parts = input.split_whitespace();
-    let mut cmd_args: Vec<String> = Vec::new();
+    for (_, a) in parts.enumerate() {
+        println!("{:#?}", a);
+    }
+    /*
+
 
     let cmd_name = parts.next().unwrap().to_string();
+
+    let remainder = parts.enumerate();
+    parse_args(x);
 
     for (_, a) in parts.enumerate() {
         cmd_args.push(a.to_string())
     }
+    */
 
     Cmd {
         name: cmd_name,
         args: cmd_args,
     }
 }
+
+/*
+fn parse_args(argsList: Enumerate<SplitWhitespace<'_>>) {
+    let mut cmd_args: Vec<String> = Vec::new();
+
+}
+*/
 
 /// Runs a cmd
 fn run(cmd: Cmd) {

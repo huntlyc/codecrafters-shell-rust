@@ -18,20 +18,22 @@ pub fn run(shell: &mut shell::Shell, cmd: shell::Cmd) {
     }
 
     let arg = cmd.args[0].to_string();
+
+    // Go home
     if arg == "~" {
         let path = std::env::var("HOME").unwrap();
         shell.set_cwd(PathBuf::from(path));
         return;
     }
 
+    // straight set to something like /usr/local/bin
     let new_path = PathBuf::from(arg);
-
-    // straight set
     if new_path.is_absolute() && is_a_dir(&new_path) {
         shell.set_cwd(new_path);
         return;
     }
 
+    // something like ../another-dir
     if new_path.is_relative() {
         let mut cwd = PathBuf::from(&shell.cwd);
         for part in new_path.iter() {
