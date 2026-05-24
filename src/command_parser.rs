@@ -7,7 +7,8 @@ enum State {
     CmdOrArg,
     InSingleQuote,
     InDoubleQuote,
-    EscapeChar,
+    EscapeNonQuoteChar,
+    EscapeDoubleQuoteChar,
 }
 
 pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
@@ -26,7 +27,7 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
         match cur_state {
             State::CmdOrArg => {
                 if c == '\\' {
-                    cur_state = State::EscapeChar;
+                    cur_state = State::EscapeNonQuoteChar;
                 } else if c == '\'' {
                     cur_state = State::InSingleQuote;
                     //println!("STATE CHANGE: {:#?}", cur_state);
@@ -48,9 +49,13 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
                     //println!("{} - {:#?}", c, cur_state);
                 }
             }
-            State::EscapeChar => {
+            State::EscapeNonQuoteChar => {
                 buf.push(c);
                 cur_state = State::CmdOrArg;
+            }
+            State::EscapeDoubleQuoteChar => {
+                buf.push(c);
+                cur_state = State::InDoubleQuote;
             }
             State::InSingleQuote => {
                 if c == '\'' {
@@ -66,7 +71,7 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
                     cur_state = State::CmdOrArg;
                     //println!("STATE CHANGE: {:#?}", cur_state);
                 } else if c == '\\' {
-                    cur_state = State::EscapeChar;
+                    cur_state = State::EscapeDoubleQuoteChar;
                 } else {
                     buf.push(c);
                     //println!("{} - {:#?}", c, cur_state);
