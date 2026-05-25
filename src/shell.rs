@@ -121,7 +121,7 @@ impl Shell {
                     .create(true)
                     .open(&self.std_out_file)
                 {
-                    let _ = writeln!(file, "{}", str_to_write);
+                    let _ = write!(file, "{}", str_to_write);
                 }
             }
         }
@@ -144,7 +144,7 @@ impl Shell {
                     .create(true)
                     .open(&self.std_err_file)
                 {
-                    let _ = writeln!(file, "{}", str_to_write);
+                    let _ = write!(file, "{}", str_to_write);
                 }
             }
         }
