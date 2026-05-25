@@ -157,8 +157,10 @@ fn run(cmd: Cmd, shell: &mut Shell) {
     }
 
     let output = Command::new(&cmd.name).args(&cmd.args).output().unwrap();
-    shell.std_out(&String::from_utf8(output.stdout).unwrap().trim());
-    shell.std_err(&String::from_utf8(output.stderr).unwrap().trim());
+    let std_out_str = String::from_utf8(output.stdout).unwrap();
+    let std_err_str = String::from_utf8(output.stderr).unwrap();
+    shell.std_out(std_out_str.trim());
+    shell.std_err(std_err_str.trim());
 }
 
 /// Given a command name, search the PATH for the command.
