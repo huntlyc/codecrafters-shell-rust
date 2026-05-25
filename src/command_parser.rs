@@ -10,7 +10,7 @@ enum State {
     EscapeNonQuoteChar,
     EscapeDoubleQuoteChar,
     RedirectingStdOut,
-    //RedirectingStdErr,
+    RedirectingStdErr,
 }
 
 pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd, anyhow::Error> {
@@ -28,7 +28,7 @@ pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd,
     let mut buf = String::new();
     let mut output_file_buf = String::new();
     let mut full_input_buf = String::new();
-    //let mut output_file_buf = String::new();
+    let mut err_output_file_buf = String::new();
 
     for c in input.chars() {
         full_input_buf.push(c);
@@ -50,6 +50,7 @@ pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd,
                     cur_state = match full_input_buf.chars().last().unwrap() {
                         ' ' => State::RedirectingStdOut,
                         '1' => State::RedirectingStdOut,
+                        '2' => State::RedirectingStdErr,
                         _ => State::RedirectingStdOut,
                     };
 
@@ -118,6 +119,9 @@ pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd,
             State::RedirectingStdOut => {
                 output_file_buf.push(c);
             }
+            State::RedirectingStdErr => {
+                err_output_file_buf.push(c);
+            }
         };
     }
 
@@ -131,6 +135,10 @@ pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd,
 
     if output_file_buf.len() > 0 {
         shell.set_std_out(&output_file_buf.trim())
+    }
+
+    if err_output_file_buf.len() > 0 {
+        shell.set_std_err(&err_output_file_buf.trim())
     }
 
     if debug {
