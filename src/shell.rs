@@ -67,13 +67,21 @@ impl Shell {
 
     pub fn std_out(&mut self, str: &str) {
         match self.std_out {
-            Output::Print => println!("{}", str),
+            Output::Print => {
+                if !str.is_empty() {
+                    println!("{}", str)
+                }
+            }
             Output::Redirect => self.write_to_file(&str),
         }
     }
     pub fn std_err(&mut self, str: &str) {
         match self.std_err {
-            Output::Print => eprintln!("{}", str),
+            Output::Print => {
+                if !str.is_empty() {
+                    eprintln!("{}", str)
+                }
+            }
             Output::Redirect => self.write_to_file_err(&str),
         }
     }
