@@ -4,12 +4,6 @@ use std::io::{self, Write};
 use std::process::Command;
 use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
 
-#[derive(Debug)]
-pub enum RedirectMode {
-    Append,
-    Write,
-}
-
 /// Represents a system command: "name", ["some", "args"]
 pub struct Cmd {
     pub name: String,
@@ -20,6 +14,12 @@ pub struct Cmd {
 pub enum Output {
     Print,
     Redirect,
+}
+
+#[derive(Debug)]
+pub enum RedirectMode {
+    Append,
+    Write,
 }
 
 #[derive(Debug)]
@@ -39,9 +39,11 @@ impl Shell {
     pub fn new(cwd: String) -> Self {
         Shell {
             cwd: PathBuf::from(cwd),
+
             std_out: Output::Print,
             std_out_file: String::new(),
             std_output_mode: RedirectMode::Write,
+
             std_err: Output::Print,
             std_err_file: String::new(),
             std_err_output_mode: RedirectMode::Write,
@@ -62,9 +64,11 @@ impl Shell {
     fn reset_redirection(&mut self) {
         self.std_out = Output::Print;
         self.std_out_file = String::new();
+        self.std_output_mode = RedirectMode::Write;
 
         self.std_err = Output::Print;
         self.std_err_file = String::new();
+        self.std_err_output_mode = RedirectMode::Write;
     }
 
     pub fn set_std_out(&mut self, fname: &str, mode: RedirectMode) {
@@ -101,40 +105,46 @@ impl Shell {
     }
 
     fn write_to_file(&mut self, contents: &str) {
+        let str_to_write = if contents.to_string().is_empty() {
+            String::new()
+        } else {
+            contents.to_owned() + "\n"
+        };
         match self.std_output_mode {
-            RedirectMode::Write => {
-                match fs::write(&self.std_out_file, contents.to_owned() + "\n") {
-                    Err(e) => self.std_err(&format!("{}", e.to_string())),
-                    _ => return,
-                }
-            }
+            RedirectMode::Write => match fs::write(&self.std_out_file, str_to_write) {
+                Err(e) => self.std_err(&format!("{}", e.to_string())),
+                _ => return,
+            },
             RedirectMode::Append => {
                 if let Ok(mut file) = fs::OpenOptions::new()
                     .append(true)
                     .create(true)
                     .open(&self.std_out_file)
                 {
-                    let _ = writeln!(file, "{}", contents);
+                    let _ = writeln!(file, "{}", str_to_write);
                 }
             }
         }
     }
 
     fn write_to_file_err(&mut self, contents: &str) {
+        let str_to_write = if contents.to_string().is_empty() {
+            String::new()
+        } else {
+            contents.to_owned() + "\n"
+        };
         match self.std_err_output_mode {
-            RedirectMode::Write => {
-                match fs::write(&self.std_err_file, contents.to_owned() + "\n") {
-                    Err(e) => self.std_err(&format!("{}", e.to_string())),
-                    _ => return,
-                }
-            }
+            RedirectMode::Write => match fs::write(&self.std_err_file, str_to_write) {
+                Err(e) => self.std_err(&format!("{}", e.to_string())),
+                _ => return,
+            },
             RedirectMode::Append => {
                 if let Ok(mut file) = fs::OpenOptions::new()
                     .append(true)
                     .create(true)
                     .open(&self.std_err_file)
                 {
-                    let _ = writeln!(file, "{}", contents);
+                    let _ = writeln!(file, "{}", str_to_write);
                 }
             }
         }
