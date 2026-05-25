@@ -71,6 +71,12 @@ impl Shell {
             Output::Redirect => self.write_to_file(&str),
         }
     }
+    pub fn std_err(&mut self, str: &str) {
+        match self.std_err {
+            Output::Print => eprintln!("{}", str),
+            Output::Redirect => self.write_to_file_err(&str),
+        }
+    }
 
     fn write_to_file(&mut self, contents: &str) {
         match fs::write(&self.std_out_file, contents) {
@@ -79,8 +85,11 @@ impl Shell {
         }
     }
 
-    pub fn std_err(&mut self, str: &str) {
-        eprintln!("{}", str);
+    fn write_to_file_err(&mut self, contents: &str) {
+        match fs::write(&self.std_err_file, contents) {
+            Err(e) => self.std_err(&format!("{}", e.to_string())),
+            _ => return,
+        }
     }
 
     /// Tries to run the command that the user typed.
@@ -140,8 +149,13 @@ fn run(cmd: Cmd, shell: &mut Shell) {
     }
 
     let output = Command::new(&cmd.name).args(&cmd.args).output().unwrap();
+
     if !output.stdout.is_empty() {
         shell.std_out(&String::from_utf8(output.stdout).unwrap().trim());
+    }
+
+    if !output.stderr.is_empty() {
+        shell.std_err(&String::from_utf8(output.stderr).unwrap().trim());
     }
 }
 
