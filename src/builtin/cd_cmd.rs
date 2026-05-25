@@ -10,10 +10,11 @@ fn is_a_dir(path: &PathBuf) -> bool {
     }
 }
 
-/// Runs the 'type' command.
-pub fn run(shell: &mut shell::Shell, cmd: shell::Cmd) {
+/// Runs the command.
+pub fn run(cmd: shell::Cmd, shell: &mut shell::Shell) {
     if cmd.args.len() == 0 {
-        // @TODO: home
+        let path = std::env::var("HOME").unwrap();
+        shell.set_cwd(PathBuf::from(path));
         return;
     }
 
@@ -53,8 +54,8 @@ pub fn run(shell: &mut shell::Shell, cmd: shell::Cmd) {
         return;
     }
 
-    println!(
+    shell.std_err(&format!(
         "cd: {}: No such file or directory",
         String::from(new_path.to_str().unwrap())
-    )
+    ))
 }

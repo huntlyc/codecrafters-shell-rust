@@ -1,6 +1,6 @@
 use anyhow::{Result, anyhow};
 
-use crate::shell::Cmd;
+use crate::shell::{Cmd, Shell};
 
 #[derive(Debug)]
 enum State {
@@ -9,9 +9,12 @@ enum State {
     InDoubleQuote,
     EscapeNonQuoteChar,
     EscapeDoubleQuoteChar,
+    RedirectingStdOut,
+    //RedirectingStdErr,
 }
 
-pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
+pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd, anyhow::Error> {
+    let debug = false;
     let mut cur_state = State::CmdOrArg;
     if input.len() == 0 {
         return Err(anyhow!("no input"));
@@ -23,30 +26,57 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
     };
 
     let mut buf = String::new();
+    let mut output_file_buf = String::new();
+    let mut full_input_buf = String::new();
+    //let mut output_file_buf = String::new();
+
     for c in input.chars() {
+        full_input_buf.push(c);
         match cur_state {
             State::CmdOrArg => {
                 if c == '\\' {
                     cur_state = State::EscapeNonQuoteChar;
                 } else if c == '\'' {
                     cur_state = State::InSingleQuote;
-                    //println!("STATE CHANGE: {:#?}", cur_state);
+                    if debug {
+                        println!("STATE CHANGE: {:#?}", cur_state);
+                    }
                 } else if c == '\"' {
                     cur_state = State::InDoubleQuote;
-                    //println!("STATE CHANGE: {:#?}", cur_state);
+                    if debug {
+                        println!("STATE CHANGE: {:#?}", cur_state);
+                    }
+                } else if c == '>' {
+                    cur_state = match full_input_buf.chars().last().unwrap() {
+                        ' ' => State::RedirectingStdOut,
+                        '1' => State::RedirectingStdOut,
+                        _ => State::RedirectingStdOut,
+                    };
+
+                    buf = String::new(); // possibly has 1/2 in it - discard
+
+                    if debug {
+                        println!("STATE CHANGE: {:#?}", cur_state);
+                    }
                 } else if c == ' ' {
                     if cmd.name.len() == 0 {
                         cmd.name = buf.to_string();
-                        //println!("Set CMD: {:#?}", cmd.name);
+                        if debug {
+                            println!("Set CMD: {:#?}", cmd.name);
+                        }
                     } else if buf.len() > 0 {
                         cmd.args.push(buf.to_string());
-                        //println!("Set ARG: {:#?}", cmd.name);
+                        if debug {
+                            println!("Set ARG: {:#?}", cmd.name);
+                        }
                     }
                     buf = String::new();
                 } else {
                     // Regular char
                     buf.push(c);
-                    //println!("{} - {:#?}", c, cur_state);
+                    if debug {
+                        println!("{} - {:#?}", c, cur_state);
+                    }
                 }
             }
             State::EscapeNonQuoteChar => {
@@ -60,22 +90,33 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
             State::InSingleQuote => {
                 if c == '\'' {
                     cur_state = State::CmdOrArg;
-                    //println!("STATE CHANGE: {:#?}", cur_state);
+                    if debug {
+                        println!("STATE CHANGE: {:#?}", cur_state);
+                    }
                 } else {
                     buf.push(c);
-                    //println!("{} - {:#?}", c, cur_state);
+                    if debug {
+                        println!("{} - {:#?}", c, cur_state);
+                    }
                 }
             }
             State::InDoubleQuote => {
                 if c == '\"' {
                     cur_state = State::CmdOrArg;
-                    //println!("STATE CHANGE: {:#?}", cur_state);
+                    if debug {
+                        println!("STATE CHANGE: {:#?}", cur_state);
+                    }
                 } else if c == '\\' {
                     cur_state = State::EscapeDoubleQuoteChar;
                 } else {
                     buf.push(c);
-                    //println!("{} - {:#?}", c, cur_state);
+                    if debug {
+                        println!("{} - {:#?}", c, cur_state);
+                    }
                 }
+            }
+            State::RedirectingStdOut => {
+                output_file_buf.push(c);
             }
         };
     }
@@ -88,7 +129,16 @@ pub fn parse_command_from_input(input: String) -> Result<Cmd, anyhow::Error> {
         }
     }
 
-    //println!("{:#?}: {:#?}", cmd.name, cmd.args);
+    if output_file_buf.len() > 0 {
+        shell.set_std_out(&output_file_buf.trim())
+    }
+
+    if debug {
+        println!("{:#?}: {:#?}", cmd.name, cmd.args);
+    }
+    if debug {
+        println!("{:#?}", shell);
+    }
 
     return Ok(cmd);
 }
