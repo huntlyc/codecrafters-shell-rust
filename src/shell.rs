@@ -1,7 +1,7 @@
 use crate::builtin;
 use crate::command_parser;
 use std::io::{self, Write};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
 
 /// Represents a system command: "name", ["some", "args"]
@@ -39,11 +39,20 @@ impl Shell {
     pub fn init(&mut self) {
         loop {
             print_prompt();
+            self.reset_redirection();
             let input = read_input();
             let cmd = command_parser::parse_command_from_input(input, self).unwrap();
 
             self.run_usr_cmd(cmd)
         }
+    }
+
+    fn reset_redirection(&mut self) {
+        self.std_out = Output::Print;
+        self.std_out_file = String::new();
+
+        self.std_err = Output::Print;
+        self.std_err_file = String::new();
     }
 
     pub fn set_std_out(&mut self, fname: &str) {
@@ -129,11 +138,11 @@ fn run(cmd: Cmd, shell: &mut Shell) {
         shell.cmd_not_found(&cmd.name);
         return;
     }
-    Command::new(&cmd.name)
-        .stdout(Stdio::inherit())
-        .args(&cmd.args)
-        .output()
-        .unwrap();
+
+    let output = Command::new(&cmd.name).args(&cmd.args).output().unwrap();
+    if !output.stdout.is_empty() {
+        shell.std_out(&String::from_utf8(output.stdout).unwrap().trim());
+    }
 }
 
 /// Given a command name, search the PATH for the command.
