@@ -31,7 +31,6 @@ pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd,
     let mut err_output_file_buf = String::new();
 
     for c in input.chars() {
-        full_input_buf.push(c);
         match cur_state {
             State::CmdOrArg => {
                 if c == '\\' {
@@ -47,7 +46,11 @@ pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd,
                         println!("STATE CHANGE: {:#?}", cur_state);
                     }
                 } else if c == '>' {
-                    cur_state = match full_input_buf.chars().last().unwrap() {
+                    let lastc = full_input_buf.chars().last().unwrap();
+                    if debug {
+                        println!("LC: {}", lastc);
+                    }
+                    cur_state = match lastc {
                         ' ' => State::RedirectingStdOut,
                         '1' => State::RedirectingStdOut,
                         '2' => State::RedirectingStdErr,
@@ -123,6 +126,7 @@ pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd,
                 err_output_file_buf.push(c);
             }
         };
+        full_input_buf.push(c);
     }
 
     if buf.len() > 0 {
