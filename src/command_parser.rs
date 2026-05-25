@@ -1,6 +1,6 @@
 use anyhow::{Result, anyhow};
 
-use crate::shell::{Cmd, Shell};
+use crate::shell::{Cmd, RedirectMode, Shell};
 
 #[derive(Debug)]
 enum State {
@@ -27,8 +27,10 @@ pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd,
 
     let mut buf = String::new();
     let mut output_file_buf = String::new();
+    let mut output_mode = RedirectMode::Write;
     let mut full_input_buf = String::new();
     let mut err_output_file_buf = String::new();
+    let mut err_output_mode = RedirectMode::Write;
 
     for c in input.chars() {
         match cur_state {
@@ -120,10 +122,18 @@ pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd,
                 }
             }
             State::RedirectingStdOut => {
-                output_file_buf.push(c);
+                if c == '>' {
+                    output_mode = RedirectMode::Append;
+                } else {
+                    output_file_buf.push(c);
+                }
             }
             State::RedirectingStdErr => {
-                err_output_file_buf.push(c);
+                if c == '>' {
+                    err_output_mode = RedirectMode::Append
+                } else {
+                    err_output_file_buf.push(c);
+                }
             }
         };
         full_input_buf.push(c);
@@ -138,11 +148,11 @@ pub fn parse_command_from_input(input: String, shell: &mut Shell) -> Result<Cmd,
     }
 
     if output_file_buf.len() > 0 {
-        shell.set_std_out(&output_file_buf.trim())
+        shell.set_std_out(&output_file_buf.trim(), output_mode)
     }
 
     if err_output_file_buf.len() > 0 {
-        shell.set_std_err(&err_output_file_buf.trim())
+        shell.set_std_err(&err_output_file_buf.trim(), err_output_mode)
     }
 
     if debug {
