@@ -102,10 +102,12 @@ impl Shell {
 
     fn write_to_file(&mut self, contents: &str) {
         match self.std_output_mode {
-            RedirectMode::Write => match fs::write(&self.std_out_file, contents) {
-                Err(e) => self.std_err(&format!("{}", e.to_string())),
-                _ => return,
-            },
+            RedirectMode::Write => {
+                match fs::write(&self.std_out_file, contents.to_owned() + "\n") {
+                    Err(e) => self.std_err(&format!("{}", e.to_string())),
+                    _ => return,
+                }
+            }
             RedirectMode::Append => {
                 if let Ok(mut file) = fs::OpenOptions::new()
                     .append(true)
@@ -120,10 +122,12 @@ impl Shell {
 
     fn write_to_file_err(&mut self, contents: &str) {
         match self.std_err_output_mode {
-            RedirectMode::Write => match fs::write(&self.std_err_file, contents) {
-                Err(e) => self.std_err(&format!("{}", e.to_string())),
-                _ => return,
-            },
+            RedirectMode::Write => {
+                match fs::write(&self.std_err_file, contents.to_owned() + "\n") {
+                    Err(e) => self.std_err(&format!("{}", e.to_string())),
+                    _ => return,
+                }
+            }
             RedirectMode::Append => {
                 if let Ok(mut file) = fs::OpenOptions::new()
                     .append(true)
